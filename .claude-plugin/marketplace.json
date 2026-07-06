@@ -1,0 +1,16 @@
+{
+  "name": "multiplylabs",
+  "description": "Multiply Labs internal Claude Code plugins",
+  "owner": {
+    "name": "Multiply Labs",
+    "url": "https://github.com/multiplylabs"
+  },
+  "plugins": [
+    {
+      "name": "seahorse-vm-setup",
+      "description": "One-command setup for a fresh seahorse GPU dev VM: browser-auth GitHub + AWS SSO (no pasted secrets), clone, and run the tested setup script.",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}

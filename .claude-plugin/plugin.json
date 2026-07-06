@@ -1,0 +1,11 @@
+{
+  "name": "seahorse-vm-setup",
+  "version": "0.1.0",
+  "description": "One-command setup for a fresh seahorse GPU dev VM. Installs pixi + tooling, authenticates GitHub via browser device flow and AWS via SSO (no pasted secrets), clones seahorse, and runs the tested setup_vm.sh.",
+  "author": {
+    "name": "Multiply Labs",
+    "url": "https://github.com/multiplylabs"
+  },
+  "repository": "https://github.com/multiplylabs/claude-setup",
+  "license": "MIT"
+}
