@@ -31,15 +31,16 @@ A human is present at the keyboard and will approve the browser-based logins whe
 - **If a step fails, stop and fix it** before continuing — read the error, diagnose, re-run just the
   failed part. Do not blindly proceed.
 
-## Step 1 — Install pixi and the GitHub CLI
+## Step 1 — Install pixi and CLI tools (`gh`, `git`, `jq`)
 
 ```bash
 curl -fsSL https://pixi.sh/install.sh | sh
 export PATH="$HOME/.pixi/bin:$PATH"
-pixi global install gh git
+pixi global install gh git jq
 ```
 
-Then verify (re-export PATH in this call): `pixi --version && gh --version && git --version`.
+Then verify (re-export PATH in this call): `pixi --version && gh --version && git --version && jq --version`.
+(`jq` is the statusline's runtime dependency — see Step 6.)
 
 ## Step 2 — Authenticate GitHub (browser, no token)
 
@@ -101,7 +102,41 @@ bash "$HOME/seahorse/scripts/vm/setup_vm.sh"
 Watch the output. Transient `apt`/network failures are common — if a step fails, fix it and re-run
 `setup_vm.sh`. It is safe to re-run: it skips existing installs and fast-forwards the clone.
 
-## Step 6 — Report completion
+## Step 6 — Configure the Claude statusline
+
+Install the shared statusline so this VM's `claude` shows folder / branch / model / context-usage /
+rate-limit segments. The script is fetched from the public `claude-setup` repo and needs only `jq`
+(installed in Step 1). Write it into the active Claude config dir, then merge the `statusLine` setting
+into `settings.json` without disturbing existing keys:
+
+```bash
+CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+mkdir -p "$CFG"
+curl -fsSL https://raw.githubusercontent.com/multiplylabs/claude-setup/main/statusline/statusline-command.sh \
+  -o "$CFG/statusline-command.sh"
+python3 - "$CFG" <<'PY'
+import json, os, sys
+cfg = sys.argv[1]
+path = os.path.join(cfg, "settings.json")
+try:
+    with open(path) as f:
+        data = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    data = {}
+data["statusLine"] = {
+    "type": "command",
+    "command": f"sh {os.path.join(cfg, 'statusline-command.sh')}",
+}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+print("statusLine configured in", path)
+PY
+```
+
+The statusline appears the next time the user launches `claude` on the VM.
+
+## Step 7 — Report completion
 
 Tell the user setup is complete, and that in their SSH session they should:
 

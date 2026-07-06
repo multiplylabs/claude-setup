@@ -33,12 +33,13 @@ Then, inside Claude:
 
 `/setup-vm` will:
 
-1. Install pixi + `gh`.
+1. Install pixi, `gh`, and `jq`.
 2. Prompt you to authenticate **GitHub** via `gh auth login --web` (browser, no token).
 3. Clone `seahorse`.
 4. Prompt you to authenticate **AWS** via `aws sso login` (browser).
 5. Run the tested `seahorse/scripts/vm/setup_vm.sh` (Docker, NVIDIA, `dvc pull`, `pixi install`),
    fixing any transient failures along the way.
+6. Install the shared Claude statusline.
 
 When it finishes: `source ~/.bashrc`, `cd ~/seahorse`, and start working.
 
@@ -55,4 +56,5 @@ When it finishes: `source ~/.bashrc`, `cd ~/seahorse`, and start working.
 .claude-plugin/marketplace.json   # marketplace catalog
 .claude-plugin/plugin.json        # plugin manifest
 commands/setup-vm.md              # the /setup-vm runbook
+statusline/statusline-command.sh  # Claude statusline installed on the VM
 ```
