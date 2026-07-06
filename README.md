@@ -19,7 +19,9 @@ entirely through browser flows; only short-lived, browser-derived credentials ev
 On the VM:
 
 ```sh
-curl -fsSL https://claude.ai/install.sh | bash   # install Claude Code
+curl -fsSL https://claude.ai/install.sh | bash   # install Claude Code (into ~/.local/bin)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # put claude on PATH
+source ~/.bashrc
 claude                                            # authenticate (browser)
 ```
 
@@ -28,8 +30,11 @@ Then, inside Claude:
 ```
 /plugin marketplace add multiplylabs/claude-setup
 /plugin install seahorse-vm-setup@multiplylabs
+/reload-plugins
 /setup-vm
 ```
+
+`/reload-plugins` loads the just-installed command into the current session.
 
 `/setup-vm` will:
 
@@ -37,8 +42,8 @@ Then, inside Claude:
 2. Prompt you to authenticate **GitHub** via `gh auth login --web` (browser, no token).
 3. Clone `seahorse`.
 4. Prompt you to authenticate **AWS** via `aws sso login` (browser).
-5. Run the tested `seahorse/scripts/vm/setup_vm.sh` (Docker, NVIDIA, `dvc pull`, `pixi install`),
-   fixing any transient failures along the way.
+5. Run the tested `seahorse/scripts/vm/setup_vm.sh` (Docker, NVIDIA, `pixi install`; DVC is verified
+   but not pulled), fixing any transient failures along the way.
 6. Install the shared Claude statusline.
 
 When it finishes: `source ~/.bashrc`, `cd ~/seahorse`, and start working.

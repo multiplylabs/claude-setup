@@ -24,10 +24,15 @@ A human is present at the keyboard and will approve the browser-based logins whe
   **not** persist between separate Bash tool calls. So: (a) put `export PATH="$HOME/.pixi/bin:$PATH"`
   at the top of every call that uses `pixi`/`gh`/`aws`, and (b) any step that sets a credential env
   var must run the program that needs it in the **same** Bash call (see Step 5).
-- **The browser logins block while you wait.** `gh auth login --web` and `aws sso login` do not
-  return until the user finishes approving in their browser. Run each with a **long Bash timeout
-  (~300000 ms / 5 min)** so the call isn't killed mid-login, and immediately relay the one-time code
-  and URL to the user before you start waiting.
+- **The browser logins block, and their code/URL won't surface until you fetch it.** `gh auth login
+  --web` and `aws sso login` don't return until the user approves, and the Bash tool won't show a
+  command's output until it exits. So **run each login as a background command** (prefix `aws` with
+  `PYTHONUNBUFFERED=1`) and **read that background command's own output** every ~2 seconds until the
+  code and URL appear (within seconds), then relay them to the user immediately. Read the background
+  command's output stream directly — do **not** redirect it into a scratch/temp directory that may not
+  exist yet (the redirect fails and the login never starts); if you must redirect, use a path under
+  `$HOME` and `mkdir -p` its directory first. Never run a login in the foreground on a long timeout —
+  that makes the user wait out the whole timeout before the code appears.
 - **If a step fails, stop and fix it** before continuing — read the error, diagnose, re-run just the
   failed part. Do not blindly proceed.
 
@@ -36,7 +41,7 @@ A human is present at the keyboard and will approve the browser-based logins whe
 ```bash
 curl -fsSL https://pixi.sh/install.sh | sh
 export PATH="$HOME/.pixi/bin:$PATH"
-pixi global install gh git jq
+pixi global install gh git jq awscli
 ```
 
 Then verify (re-export PATH in this call): `pixi --version && gh --version && git --version && jq --version`.
@@ -48,8 +53,11 @@ Start the browser device flow. This is interactive — it prints a one-time code
 
 ```bash
 export PATH="$HOME/.pixi/bin:$PATH"
-gh auth login --hostname github.com --git-protocol https --web -s read:packages
+gh auth login --hostname github.com --git-protocol https --web -s read:org,read:packages,write:packages,workflow
 ```
+
+Scopes: `repo` (default) + `read:org` for cloning and org access; `read:packages`/`write:packages`
+to pull and push `ghcr` images; `workflow` to push commits that touch `.github/workflows/`.
 
 Tell the user: **"A one-time code is shown above — open the URL on your laptop, paste the code, and
 approve. I'll wait."** After it completes, run `gh auth setup-git` and confirm with `gh auth status`.
@@ -61,16 +69,14 @@ export PATH="$HOME/.pixi/bin:$PATH"
 if [ -d "$HOME/seahorse/.git" ]; then
   git -C "$HOME/seahorse" pull --ff-only
 else
-  # TEMPORARY: testing against the unmerged seahorse PR branch (scripts/vm/ reorg, PR #273).
-  # After that PR merges, drop the `-- --branch ...` so this clones the default branch again.
-  gh repo clone multiplylabs/seahorse "$HOME/seahorse" -- --branch worktree-update-vm-setup-instructions
+  gh repo clone multiplylabs/seahorse "$HOME/seahorse" -- --depth 1
 fi
 ```
 
 ## Step 4 — Authenticate AWS via SSO (browser)
 
 The non-secret SSO profile lives in the private repo at `~/seahorse/scripts/vm/aws_sso_profile.conf`.
-Append it to `~/.aws/config` only if a `[profile Seahorse]` block isn't already present, then log in:
+First append it to `~/.aws/config` only if a `[profile Seahorse]` block isn't already present:
 
 ```bash
 export PATH="$HOME/.pixi/bin:$PATH"
@@ -80,15 +86,24 @@ if ! grep -q '\[profile Seahorse\]' "$HOME/.aws/config"; then
   printf '\n' >> "$HOME/.aws/config"
   cat "$HOME/seahorse/scripts/vm/aws_sso_profile.conf" >> "$HOME/.aws/config"
 fi
-aws sso login --profile Seahorse
 ```
 
-Tell the user: **"Approve the AWS SSO login in your browser. I'll wait."**
+Then log in with the **device-code** flow (the VM is headless — no local browser to open):
+
+```bash
+export PATH="$HOME/.pixi/bin:$PATH"
+PYTHONUNBUFFERED=1 aws sso login --profile Seahorse --use-device-code
+```
+
+Run that login **in the background** (per the ground rules): poll its output every ~2 seconds until the
+verification URL and `XXXX-XXXX` code appear, then relay both at once — **"Open <URL>, enter code
+<XXXX-XXXX>, and approve. I'll wait."** — and keep waiting until the login process exits successfully.
 
 ## Step 5 — Run the tested setup script
 
 `~/seahorse/scripts/vm/setup_vm.sh` does the heavy lifting (Docker, NVIDIA libs, global tools, ghcr
-login, `dvc pull`, `pixi install`). It expects `GITHUB_TOKEN` and AWS credentials in the environment.
+login, `pixi install`; it verifies DVC but does not pull data). It expects `GITHUB_TOKEN` and AWS
+credentials in the environment.
 Provide them from the sessions you just authenticated — **all in a single Bash call** (env vars don't
 persist between calls) and **without ever printing them**:
 
