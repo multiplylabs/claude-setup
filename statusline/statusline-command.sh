@@ -61,12 +61,35 @@ if [ -n "$used" ]; then
     output="${output}  |  ${color}🧠 Context [${bar}] ${used}%${reset}"
 fi
 
-# ⏳ subscription rate limits (bright blue) — Claude.ai Pro/Max only
+# ⏳ subscription rate limits (bright blue) — Claude.ai Pro/Max only.
+# Each window also carries a `resets_at` epoch (seconds); show time-until-reset.
 five=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 week=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+five_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+week_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
+
+# Format a seconds count as compact "Xd Yh" / "Xh Ym" / "Xm" until reset.
+fmt_reset() {
+    now=$(date +%s)
+    secs=$(( $1 - now ))
+    [ "$secs" -lt 0 ] && secs=0
+    d=$(( secs / 86400 )); h=$(( (secs % 86400) / 3600 )); m=$(( (secs % 3600) / 60 ))
+    if   [ "$d" -gt 0 ]; then printf "%dd %dh" "$d" "$h"
+    elif [ "$h" -gt 0 ]; then printf "%dh %dm" "$h" "$m"
+    else printf "%dm" "$m"; fi
+}
+
 rate_seg=""
-[ -n "$five" ] && rate_seg="5H: $(printf "%.0f" "$five")%"
-[ -n "$week" ] && rate_seg="${rate_seg:+$rate_seg, }7D: $(printf "%.0f" "$week")%"
+if [ -n "$five" ]; then
+    seg="5H: $(printf "%.0f" "$five")%"
+    [ -n "$five_reset" ] && seg="${seg} ↻ $(fmt_reset "$five_reset")"
+    rate_seg="$seg"
+fi
+if [ -n "$week" ]; then
+    seg="7D: $(printf "%.0f" "$week")%"
+    [ -n "$week_reset" ] && seg="${seg} ↻ $(fmt_reset "$week_reset")"
+    rate_seg="${rate_seg:+$rate_seg, }${seg}"
+fi
 [ -n "$rate_seg" ] && output="${output}  |  ${bright_blue}⏳ Claude Limits - ${rate_seg}${reset}"
 
 printf "%b" "$output"
