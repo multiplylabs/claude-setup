@@ -7,9 +7,9 @@
   },
   "plugins": [
     {
-      "name": "seahorse-vm-setup",
-      "description": "One-command setup for a fresh seahorse GPU dev VM: browser-auth GitHub + AWS SSO (no pasted secrets), clone, and run the tested setup script.",
-      "version": "0.1.0",
+      "name": "seahorse-setup",
+      "description": "One-command setup for a fresh seahorse dev machine — GPU VM (/setup-vm) or Apple Silicon Mac (/setup-mac): statusline + oh-my-zsh, browser-auth GitHub + AWS SSO (no pasted secrets), clone, and run the tested setup script.",
+      "version": "0.2.0",
       "source": "./"
     }
   ]

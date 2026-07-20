@@ -1,0 +1,51 @@
+# ~/.zshrc — Multiply Labs seahorse dev environment (managed by claude-setup)
+#
+# Installed by /setup-mac and /setup-vm. It is self-adapting: macOS-only plugins,
+# Homebrew, OrbStack, and Sublime are wired up only when present, so the same file
+# works on an Apple Silicon Mac and an Ubuntu VM.
+#
+# No secrets live here. Put machine-local settings, secrets, and personal aliases in
+# ~/.zshrc.local (sourced at the end) — it is never committed.
+
+# ─── oh-my-zsh ───────────────────────────────────────────────────────────────
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+
+# `z` (lowercase) is the bundled jump-around plugin; zsh-autosuggestions and
+# zsh-syntax-highlighting are cloned into $ZSH_CUSTOM/plugins during setup.
+plugins=(git z zsh-autosuggestions gcloud github jira)
+[[ "$OSTYPE" == darwin* ]] && plugins+=(macos sublime)
+plugins+=(zsh-syntax-highlighting)   # must be last
+
+source "$ZSH/oh-my-zsh.sh"
+
+# ─── PATH ────────────────────────────────────────────────────────────────────
+export PATH="$HOME/.pixi/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+[[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+[[ -d "$HOME/.orbstack/bin" ]] && export PATH="$HOME/.orbstack/bin:$PATH"
+[[ -d "/Applications/Sublime Text.app/Contents/SharedSupport/bin" ]] && \
+  export PATH="/Applications/Sublime Text.app/Contents/SharedSupport/bin:$PATH"
+
+# ─── editor ──────────────────────────────────────────────────────────────────
+if [[ -n "$SSH_CONNECTION" ]]; then
+  export EDITOR='vi'
+elif command -v subl >/dev/null 2>&1; then
+  export EDITOR='subl'
+else
+  export EDITOR='vi'
+fi
+
+# ─── zsh-autosuggestions keybindings ─────────────────────────────────────────
+# Right-arrow accepts a single char (partial accept) instead of the whole line.
+ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=("${(@)ZSH_AUTOSUGGEST_ACCEPT_WIDGETS:#forward-char}")
+ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=("${(@)ZSH_AUTOSUGGEST_ACCEPT_WIDGETS:#vi-forward-char}")
+ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS+=(forward-char)
+ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS+=(vi-forward-char)
+autosuggest_partial_charwise() { zle forward-word; }
+zle -N autosuggest_partial_charwise
+bindkey "${terminfo[kcuf1]}" autosuggest_partial_charwise
+ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(autosuggest_partial_charwise)
+
+# ─── machine-local overrides (secrets, personal aliases) — never committed ────
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"

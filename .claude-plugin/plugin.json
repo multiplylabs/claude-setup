@@ -1,7 +1,7 @@
 {
-  "name": "seahorse-vm-setup",
-  "version": "0.1.0",
-  "description": "One-command setup for a fresh seahorse GPU dev VM. Installs pixi + tooling, authenticates GitHub via browser device flow and AWS via SSO (no pasted secrets), clones seahorse, and runs the tested setup_vm.sh.",
+  "name": "seahorse-setup",
+  "version": "0.2.0",
+  "description": "One-command setup for a fresh seahorse dev machine — GPU VM (/setup-vm) or Apple Silicon Mac (/setup-mac). Installs the Claude statusline and oh-my-zsh, pixi + tooling, authenticates GitHub and AWS via browser (no pasted secrets), clones seahorse, and runs the tested setup script.",
   "author": {
     "name": "Multiply Labs",
     "url": "https://github.com/multiplylabs"
